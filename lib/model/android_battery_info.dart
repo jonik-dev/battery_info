@@ -12,7 +12,7 @@ class AndroidBatteryInfo {
   int? batteryCapacity;
   int? remainingEnergy = -1;
   int? scale;
-  int? temperature = -1;
+  double? temperature = -1;
   int? voltage = -1;
   bool? present = true;
   ChargingStatus? chargingStatus;
