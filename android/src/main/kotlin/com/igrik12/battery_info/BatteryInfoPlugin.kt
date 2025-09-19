@@ -63,74 +63,86 @@ public class BatteryInfoPlugin : FlutterPlugin, MethodCallHandler, StreamHandler
 
     /** Gets battery information*/
     private fun getBatteryInfo(intent: Intent): Map<String, Any?> {
-        val chargingStatus = getChargingStatus(intent)
-        val voltageMv = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1)
-        val health = getBatteryHealth(intent)
-        val pluggedStatus = getBatteryPluggedStatus(intent)
+        // ---- Helpers ----
+        fun BatteryManager.intPropOrNull(id: Int): Int? =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                getIntProperty(id).takeUnless { it == Int.MIN_VALUE }
+            } else null
 
-        var batteryLevelPct = -1
-        var capacityMicroAh = -1
-        var currentAverageRaw = Int.MIN_VALUE
-        var currentNowRaw = Int.MIN_VALUE
-        val present = intent.extras?.getBoolean(BatteryManager.EXTRA_PRESENT)
-        val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 0)
-        val technology = intent.extras?.getString(BatteryManager.EXTRA_TECHNOLOGY)
-        var remainingEnergyNWh: Long? = null
+        fun BatteryManager.longPropOrNull(id: Int): Long? =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                getLongProperty(id).takeUnless { it == Long.MIN_VALUE }
+            } else null
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            batteryLevelPct = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-            capacityMicroAh = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER)
-            currentAverageRaw = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_AVERAGE)
-            currentNowRaw = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
-
-            val e = batteryManager.getLongProperty(BatteryManager.BATTERY_PROPERTY_ENERGY_COUNTER)
-            // Some devices return Long.MIN_VALUE when unsupported
-            if (e != java.lang.Long.MIN_VALUE) remainingEnergyNWh = e
-        }
-
-        // ---- Normalize units ----
-        // Capacity: µAh -> mAh (Int, rounded)
-        val capacityMah: Int? = if (capacityMicroAh >= 0) {
-            kotlin.math.round(capacityMicroAh / 1000.0).toInt()
-        } else null
-
-        // Heuristic to decide if current is µA or mA, then return mA (Int, rounded)
-        fun normalizeCurrentToMilliAmps(raw: Int, capMah: Int?): Int? {
-            if (raw == Int.MIN_VALUE) return null
+        fun normalizeCurrentToMilliAmps(raw: Int?, capMah: Int?): Int? {
+            raw ?: return null
             val absRaw = kotlin.math.abs(raw)
             val looksLikeMicroAmps = absRaw > 10_000 || (capMah != null && absRaw > capMah * 10)
             val asMilli = if (looksLikeMicroAmps) raw / 1000.0 else raw.toDouble()
             return kotlin.math.round(asMilli).toInt()
         }
 
-        val currentNowMilliA = normalizeCurrentToMilliAmps(currentNowRaw, capacityMah)
-        val currentAverageMilliA = normalizeCurrentToMilliAmps(currentAverageRaw, capacityMah)
-
-        val chargeTimeRemainingMs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            batteryManager.computeChargeTimeRemaining()
-        } else {
-            -1
-        }
-
-        // Temperature: tenths of °C -> °C (Double)
+        // ---- Basic intent/extras ----
+        val chargingStatus = getChargingStatus(intent)
+        val voltageMilliV = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1)
+        val health = getBatteryHealth(intent)
+        val pluggedStatus = getBatteryPluggedStatus(intent)
+        val present = intent.getBooleanExtra(BatteryManager.EXTRA_PRESENT, true)
+        val tech = intent.getStringExtra(BatteryManager.EXTRA_TECHNOLOGY)
+        val maximumBatteryLevel = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+        val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
         val temperatureC = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) / 10.0
 
+        // ---- Properties (SDK >= 21) ----
+        val pctFromProp: Int? = batteryManager.intPropOrNull(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+            ?.takeIf { it in 0..100 }
+
+        val chargeCounterMicroAh: Int? =
+            batteryManager.intPropOrNull(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER)
+
+        val currentAverageRaw: Int? =
+            batteryManager.intPropOrNull(BatteryManager.BATTERY_PROPERTY_CURRENT_AVERAGE)
+
+        val currentNowRaw: Int? =
+            batteryManager.intPropOrNull(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
+
+        val remainingEnergyNWh: Long? =
+            batteryManager.longPropOrNull(BatteryManager.BATTERY_PROPERTY_ENERGY_COUNTER)
+
+        val pctFromIntent: Int? =
+            if (level >= 0 && maximumBatteryLevel > 0) kotlin.math.round(level * 100.0 / maximumBatteryLevel).toInt() else null
+
+        val batteryLevelPercentage: Int = (pctFromProp ?: pctFromIntent) ?: -1
+
+        // ---- Normalize units ----
+        // Capacity: µAh -> mAh (Int, rounded)
+        val remainingbatteryCapacityMilliAh: Int? = chargeCounterMicroAh?.let { kotlin.math.round(it / 1000.0).toInt() }
+
+        // Currents to mA (negative = purkaus, positive = lataus)
+        val currentNowMilliA: Int? = normalizeCurrentToMilliAmps(currentNowRaw, remainingbatteryCapacityMilliAh)
+        val currentAverageMilliA: Int? = normalizeCurrentToMilliAmps(currentAverageRaw, remainingbatteryCapacityMilliAh)
+
+        // Charge time remaining (ms) or -1 jos ei saatavilla
+        val chargeTimeRemainingMs: Long? =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                batteryManager.computeChargeTimeRemaining()
+            } else null
+
         return mapOf(
-            "batteryLevel" to batteryLevelPct,                // %
-            "batteryCapacity" to capacityMah,                 // mAh (Int?)
-            "chargeTimeRemaining" to chargeTimeRemainingMs,   // ms
+            "batteryLevelPercentage" to batteryLevelPercentage,              // %
+            "remainingbatteryCapacityMilliAh" to remainingbatteryCapacityMilliAh,               // mAh (Int?)
+            "chargeTimeRemainingMs" to chargeTimeRemainingMs, // ms (Long?)
             "chargingStatus" to chargingStatus,
-            "currentAverage" to currentAverageMilliA,         // mA (Int?)
-            "currentNow" to currentNowMilliA,                 // mA (Int?)
-            "currentUnit" to "mA",                            // hint for clients
+            "currentAverageMilliA" to currentAverageMilliA,       // mA (Int?)
+            "currentNowMilliA" to currentNowMilliA,               // mA (Int?)
             "health" to health,
             "present" to present,
             "pluggedStatus" to pluggedStatus,
-            "remainingEnergy" to remainingEnergyNWh,          // nWh (Long?)
-            "scale" to scale,
-            "technology" to technology,
-            "temperature" to temperatureC,                    // °C (Double)
-            "voltage" to voltageMv                            // mV (Int)
+            "remainingEnergyNWh" to remainingEnergyNWh,        // nWh (Long?)
+            "maximumBatteryLevel" to maximumBatteryLevel,
+            "technology" to tech,
+            "temperatureC" to temperatureC,                  // °C (Double)
+            "voltageMilliV" to voltageMilliV                          // mV (Int)
         )
     }
 
