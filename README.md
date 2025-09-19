@@ -47,7 +47,7 @@ import 'package:battery_info/model/iso_battery_info.dart';
 print("Battery Health: ${(await BatteryInfoPlugin().androidBatteryInfo).health}");
 
 // Access current battery level - IOS
-print("Battery Level: ${(await BatteryInfoPlugin().iosBatteryInfo).batteryLevel}");
+print("Battery Level: ${(await BatteryInfoPlugin().iosBatteryInfo).batteryLevelPercentage}");
 
 // Calculate estimated charging time
 BatteryInfoPlugin().androidBatteryInfoStream.listen((AndroidBatteryInfo batteryInfo) {

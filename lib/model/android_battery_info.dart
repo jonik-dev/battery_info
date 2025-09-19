@@ -2,55 +2,55 @@ import 'package:battery_info/enums/charging_status.dart';
 
 /// Android Battery Info data model
 class AndroidBatteryInfo {
-  int? currentNow = -1;
-  int? currentAverage = -1;
-  int? chargeTimeRemaining = -1;
+  int? currentNowMilliA;
+  int? currentAverageMilliA;
+  int? chargeTimeRemainingMs;
   String? health = "unknown";
   String? pluggedStatus = "unknown";
   String? technology = "unknown";
-  int? batteryLevel;
-  int? batteryCapacity;
-  int? remainingEnergy = -1;
-  int? scale;
-  double? temperature = -1;
-  int? voltage = -1;
-  bool? present = true;
+  int? batteryLevelPercentage;
+  int? remainingbatteryCapacityMilliAh;
+  int? remainingEnergyNWh;
+  int? maximumBatteryLevel;
+  double? temperatureC;
+  int? voltageMilliV;
+  bool? present;
   ChargingStatus? chargingStatus;
 
   AndroidBatteryInfo({
-    this.batteryCapacity,
-    this.batteryLevel,
-    this.chargeTimeRemaining,
+    this.remainingbatteryCapacityMilliAh,
+    this.batteryLevelPercentage,
+    this.chargeTimeRemainingMs,
     this.chargingStatus,
-    this.currentAverage,
-    this.currentNow,
+    this.currentAverageMilliA,
+    this.currentNowMilliA,
     this.health,
     this.pluggedStatus,
     this.present,
-    this.remainingEnergy,
-    this.scale,
+    this.remainingEnergyNWh,
+    this.maximumBatteryLevel,
     this.technology,
-    this.temperature,
-    this.voltage,
+    this.temperatureC,
+    this.voltageMilliV,
   });
 
   /// Serialise data back to json from the model
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
-    data["batteryCapacity"] = this.batteryCapacity;
-    data["batteryLevel"] = this.batteryLevel;
+    data["remainingbatteryCapacityMilliAh"] = this.remainingbatteryCapacityMilliAh;
+    data["batteryLevelPercentage"] = this.batteryLevelPercentage;
     data["chargingStatus"] = this.chargingStatus;
-    data["chargeTimeRemaining"] = this.chargeTimeRemaining;
-    data["currentAverage"] = this.currentAverage;
-    data["currentNow"] = this.currentNow;
+    data["chargeTimeRemainingMs"] = this.chargeTimeRemainingMs;
+    data["currentAverageMilliA"] = this.currentAverageMilliA;
+    data["currentNowMilliA"] = this.currentNowMilliA;
     data["health"] = this.health;
     data["pluggedStatus"] = this.pluggedStatus;
     data["present"] = this.present;
-    data["scale"] = this.scale;
-    data["remainingEnergy"] = this.remainingEnergy;
-    data["temperature"] = this.temperature;
+    data["maximumBatteryLevel"] = this.maximumBatteryLevel;
+    data["remainingEnergyNWh"] = this.remainingEnergyNWh;
+    data["temperatureC"] = this.temperatureC;
     data["technology"] = this.technology;
-    data["voltage"] = this.voltage;
+    data["voltageMilliV"] = this.voltageMilliV;
     return data;
   }
 
@@ -70,19 +70,19 @@ class AndroidBatteryInfo {
 
   /// Deserialize data from json
   AndroidBatteryInfo.fromJson(Map<String, dynamic> json) {
-    this.batteryCapacity = json["batteryCapacity"];
-    this.batteryLevel = json["batteryLevel"];
+    this.remainingbatteryCapacityMilliAh = json["remainingbatteryCapacityMilliAh"];
+    this.batteryLevelPercentage = json["batteryLevelPercentage"];
     this.chargingStatus = getChargingStatus(json["chargingStatus"]);
-    this.chargeTimeRemaining = json["chargeTimeRemaining"];
-    this.currentAverage = json["currentAverage"];
-    this.currentNow = json["currentNow"];
+    this.chargeTimeRemainingMs = json["chargeTimeRemainingMs"];
+    this.currentAverageMilliA = json["currentAverageMilliA"];
+    this.currentNowMilliA = json["currentNowMilliA"];
     this.health = json["health"];
     this.pluggedStatus = json["pluggedStatus"];
     this.present = json["present"];
-    this.scale = json["scale"];
-    this.remainingEnergy = json["remainingEnergy"];
+    this.maximumBatteryLevel = json["maximumBatteryLevel"];
+    this.remainingEnergyNWh = json["remainingEnergyNWh"];
     this.technology = json["technology"];
-    this.temperature = json["temperature"];
-    this.voltage = json["voltage"];
+    this.temperatureC = json["temperatureC"];
+    this.voltageMilliV = json["voltageMilliV"];
   }
 }

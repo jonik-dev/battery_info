@@ -1,14 +1,14 @@
 import 'package:battery_info/enums/charging_status.dart';
 
 class IosBatteryInfo {
-  int? batteryLevel;
+  int? batteryLevelPercentage;
   ChargingStatus? chargingStatus;
-  IosBatteryInfo({this.batteryLevel, this.chargingStatus});
+  IosBatteryInfo({this.batteryLevelPercentage, this.chargingStatus});
 
   /// Serialise data back to json from the model
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
-    data["batteryLevel"] = this.batteryLevel;
+    data["batteryLevelPercentage"] = this.batteryLevelPercentage;
     data["chargingStatus"] = this.chargingStatus;
     return data;
   }
@@ -28,7 +28,7 @@ class IosBatteryInfo {
 
   @override
   IosBatteryInfo.fromJson(Map<String, dynamic> json) {
-    this.batteryLevel = json["batteryLevel"];
+    this.batteryLevelPercentage = json["batteryLevelPercentage"];
     this.chargingStatus = getChargingStatus(json["batteryStatus"]);
   }
 }

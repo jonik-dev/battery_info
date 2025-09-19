@@ -30,7 +30,7 @@ public class SwiftBatteryInfoPlugin: NSObject, FlutterPlugin {
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     let batteryInfo = generator.generate()
     
-    if let level = batteryInfo["batteryLevel"] as? Int{
+    if let level = batteryInfo["batteryLevelPercentage"] as? Int{
       if(level < 0){
         result(FlutterError(
           code: CustomFlutterErrorCode.unavailable,
@@ -63,7 +63,7 @@ class SwiftStreamHandler: NSObject, FlutterStreamHandler {
     self.eventSink = eventSink
     let batteryInfo = generator.generate()
 
-    if let level = batteryInfo["batteryLevel"] as? Int{
+    if let level = batteryInfo["batteryLevelPercentage"] as? Int{
       if(level < 0){
         eventSink(FlutterError(
           code: CustomFlutterErrorCode.unavailable,
@@ -126,7 +126,7 @@ struct BatteryInfoGenerator{
     // Generates the battery information
     func generate() -> Dictionary<String, Any>{
       var batteryInfo: [String: Any] = [:]
-      batteryInfo["batteryLevel"] = getBatteryLevel()
+      batteryInfo["batteryLevelPercentage"] = getBatteryLevel()
       batteryInfo["batteryStatus"] = getBatteryState()
       return batteryInfo
     }
